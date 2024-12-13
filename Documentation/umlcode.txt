@@ -1,0 +1,237 @@
+@startuml
+skinparam classBackgroundColor<<Asteroid>> #FFFFCC
+skinparam classBackgroundColor<<AsteroidManager>> #CCFFFF
+skinparam classBackgroundColor<<Game>> #FFCCCC
+skinparam classBackgroundColor<<Missile>> #CCFFCC
+skinparam classBackgroundColor<<NormalMissile>> #FFCCFF
+skinparam classBackgroundColor<<Shooter>> #CCCCFF
+skinparam classBackgroundColor<<NormalShooter>> #FFD700
+skinparam classBackgroundColor<<SpreadShooter>> #ADD8E6
+skinparam classBackgroundColor<<RapidShooter>> #98FB98
+skinparam classBackgroundColor<<MissileManager>> #F08080
+skinparam classBackgroundColor<<ShooterManager>> #FFDAB9
+
+class Asteroid <<Asteroid>> {
+    Asteroid
+    - sprite: sf::Sprite
+    - texture: sf::Texture
+    - type: std::string
+    - speed: float
+    - hp: int
+    - maxHp: int
+    - pointsAwarded: int
+    - scale: float
+    - mask: std::vector<std::vector<bool>>
+
+    - initTexture(): void
+    - initSprite(): void
+    - initAttributes(int type): void
+    - generatePixelMask(sf::Texture): std::vector<std::vector<bool>>
+
+    + Asteroid(float pos_x, float pos_y, int type)
+    + ~Asteroid()
+    + getBounds() const: sf::FloatRect
+    + move(float dirX, float dirY): void
+    + update(): void
+    + render(sf::RenderTarget& target): void
+    + getSprite(): sf::Sprite
+    + getMask(): std::vector<std::vector<bool>>
+}
+
+class AsteroidManager <<AsteroidManager>> {
+    - sf::RenderWindow* window
+    - float spawnTimer
+    - float spawnTimerMax
+    - std::vector<Asteroid*> asteroids 
+    - sf::SoundBuffer destructionBuffer
+    - sf::Sound destructionSound
+    - void initAstroid()
+    - void loadAudioFiles()
+    + AsteroidManager()
+    + ~AsteroidManager()
+    + bool pixelPerfectCollision(const sf::Sprite&, const settings::Circle&, const std::vector<std::vector<bool>>&)
+    + void setWindow(sf::RenderWindow*)
+    + void updateAsteroids(MissileManager*)
+    + void update(MissileManager*)
+    + void render()
+}
+
+class Game <<Game>> {
+    - window: sf::RenderWindow*
+    - asteroidManager: AsteroidManager*
+    - shooterManager: ShooterManager*
+    - missileManager: MissileManager*
+    - backgroundTexture: sf::Texture
+    - backgroundSprite: sf::Sprite
+    - cursor: sf::Cursor
+    - cursorImage: sf::Image
+    - backgroundMusic: sf::Music
+
+    + Game()
+    + ~Game()
+    + initWindow(): void
+    + initBackground(): void
+    + initAsteroidManager(): void
+    + run(): void
+}
+
+class Missile <<Missile>> {
+    - sf::Vector2f position
+    - sf::Vector2f direction
+    - sf::Vector2f targetPositon
+    - double speed
+    - double blastRadius
+    - State state
+    - int explodeDuration
+
+    + Missile(sf::Vector2f, sf::Vector2f)
+    + void move()
+    + void updateState()
+    + virtual void explode()
+    + virtual void draw(sf::RenderWindow &)
+    + const sf::Vector2f& getPositon()
+    + const sf::Vector2f& getTargetPositon()
+    + virtual settings::Circle getBounds()
+    + State getState()
+    + const sf::Vector2f& getDirection()
+    + ~Missile()
+}
+
+enum Missile::State {
+    ALIVE
+    EXPLODE
+    DEAD
+}
+
+class NormalMissile <<NormalMissile>> {
+    - sf::VertexArray line
+    - sf::CircleShape aliveCircle
+    - sf::CircleShape explodeCircle
+
+    + NormalMissile(sf::Vector2f, sf::Vector2f)
+    + void draw(sf::RenderWindow &) override
+    + void explode() override
+    + settings::Circle getBounds() override
+    + ~NormalMissile()
+}
+
+class Shooter <<Shooter>> {
+    - sf::Clock fireInterval
+    - int cooldownPeriod
+    - bool cooldownEnabled
+    - settings::missileType attachedMissile
+    - bool onStart
+    - sf::Vector2f position
+    - State state
+    - sf::Sound missileLaunchSound
+    - sf::SoundBuffer missileLaunchBuffer
+    - sf::Sprite lock
+    - sf::Texture lockTexture
+    - sf::Sprite invalidSign
+    - sf::Texture invalidSignTexture
+
+    + Shooter(sf::Vector2f, settings::missileType, int = settings::defaultCooldown)
+    + void toggleCooldown(bool)
+    + void setCooldownPeriod(int)
+    + void checkState()
+    + void resetTimer()
+    + virtual std::vector<Missile*> shoot(sf::Vector2f)
+    + virtual void draw(sf::RenderWindow &)
+    + virtual void makeAbstract() = 0
+    + void unlock()
+    + Missile* addMissile(sf::Vector2f, sf::Vector2f)
+}
+
+enum Shooter::State {
+    LOCKED
+    ACTIVE
+    INACTIVE
+}
+
+class NormalShooter <<NormalShooter>> {
+    - sf::Sprite graphics
+    - sf::Texture graphicTexture
+    - settings::shooterType type
+    - sf::Sprite fadedGraphics
+
+    + NormalShooter(sf::Vector2f, settings::missileType, std::string, int = settings::defaultCooldown)
+    + std::vector<Missile*> shoot(sf::Vector2f) override
+    + void draw(sf::RenderWindow &) override
+    + void makeAbstract() override
+}
+
+class SpreadShooter <<SpreadShooter>> {
+    - settings::shooterType type
+    - sf::Sprite graphics
+    - sf::Texture graphicTexture
+    - int missileCount
+    - double spread
+    - sf::Sprite fadedGraphics
+
+    + SpreadShooter(sf::Vector2f, settings::missileType, std::string, int = settings::spreadCooldown)
+    + std::vector<Missile*> shoot(sf::Vector2f) override
+    + void draw(sf::RenderWindow &) override
+    + void makeAbstract() override
+}
+
+class RapidShooter <<RapidShooter>> {
+    - settings::shooterType type
+    - int missileCount
+    - sf::Sprite graphics
+    - sf::Texture graphicTexture
+    - sf::Sprite fadedGraphics
+
+    + RapidShooter(sf::Vector2f, settings::missileType, std::string, int = settings::rapidCooldown)
+    + std::vector<Missile*> shoot(sf::Vector2f) override
+    + void draw(sf::RenderWindow &) override
+    + void makeAbstract() override
+}
+
+class MissileManager <<MissileManager>> {
+    - std::vector<Missile*> missileList
+    - sf::RenderWindow* window
+
+    + MissileManager(sf::RenderWindow*)
+    + void addMissile(std::vector<Missile*>)
+    + std::vector<settings::Circle> getAllBounds()
+    + void executeMissileBehaviour()
+    + void updateStatus()
+    + void update()
+    + void render()
+    + ~MissileManager()
+}
+
+class ShooterManager <<ShooterManager>> {
+    - std::vector<Shooter*> shooterList
+    - int currentShooter
+    - int unlockCounter
+    - sf::RenderWindow* window
+    - int totalShootersCount
+    - std::vector<sf::Vector2f> coordinates
+    - float shootersYPosition
+    - sf::Sprite shooterCursorGraphics
+    - sf::Texture shooterCursorTexture
+    - std::vector<int> positionsToOrder
+
+    + ShooterManager(sf::RenderWindow*)
+    + void render()
+    + std::vector<Missile*> shoot(sf::Vector2f target)
+    + void selectShooter(int index)
+    + void unlockNext()
+    + int getCurrentShooter()
+}
+
+Game --> AsteroidManager : "uses"
+Game --> MissileManager : "uses"
+Game --> ShooterManager : "uses"
+Game --> GameUtils : "uses"
+
+AsteroidManager --> Asteroid : "manages"
+MissileManager --> Missile : "manages"
+ShooterManager --> Shooter : "manages"
+
+Missile <|-- NormalMissile
+Shooter <|-- NormalShooter
+Shooter <|-- SpreadShooter
+Shooter <|-- RapidShooter
+@enduml
