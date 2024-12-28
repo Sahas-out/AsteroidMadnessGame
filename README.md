@@ -1,3 +1,4 @@
+A little game created to showcase OOP skills for academic credentials
 ## Licensing
 This project uses the SFML library, which is licensed under the zlib/png license. See `sfml_license.txt` for details.
 
